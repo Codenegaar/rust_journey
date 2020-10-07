@@ -19,4 +19,10 @@ My journey towards being a better Rust programmer. From basics to advanced topic
 * [05: Cargo Playground](https://github.com/Codenegaar/rust_journey/tree/master/p05_cargo_pg)
     - Test cargo's functionality and project's structure. Read more on [its doc!](https://github.com/Codenegaar/rust_journey/tree/master/p05_cargo_pg)
     
+## List of microservices projects
 
+The following projects have been written in order to make use of microservices concepts 
+with Rust.
+
+* [01: Hyper Microservice]()
+    - A simple microservice built using the [hyper crate](https://hyper.rs/)
