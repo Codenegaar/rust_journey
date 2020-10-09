@@ -1,5 +1,5 @@
 use std::convert::Infallible;
-use std::net::SocketAddr;
+use std::env;
 
 use hyper::{Body, Request, Response, Server,
             Method, StatusCode
@@ -11,10 +11,17 @@ use futures::TryStreamExt as _;
 //Logging and conf.
 use log::{debug, info, trace, error};
 use clap::{App, crate_name, crate_authors, crate_description, crate_version, Arg};
+use dotenv::dotenv;
+
+//Private modules
+mod config;
 
 #[tokio::main]
 async fn main() {
     //Start logging and configuration
+    //Parse .env file and set variables
+    dotenv().ok();
+
     //Initialize logging
     pretty_env_logger::init();
 
@@ -24,33 +31,44 @@ async fn main() {
         .author(crate_authors!())
         .about(crate_description!())
         .arg(Arg::with_name("address")
-            .short('a')
+            .short("a")
             .long("address")
             .value_name("ADDRESS")
-            .help("IP address to bind the server to")
-            .takes_value(true))
-        .arg(Arg::with_name("port")
-            .short("p")
-            .long("port")
-            .value_name("PORT")
-            .help("Port to listen to")
-            .takes_value(true))
-        .arg(Arg::with_name("log-level")
-            .short("l")
-            .long("log-level")
-            .value_name("LOG_LEVEL")
-            .help("Log level, trace, debug, info, warn, error")
+            .help("IP address to bind the server to(address:port)")
             .takes_value(true))
         .get_matches();
 
-    let addr = SocketAddr::from(([127, 0, 0, 1], 8080));
+    //Instantiate config
+    let conf = config::Config{
+        address: matches.value_of("address")
+            .map(|s| s.to_owned())
+            .or(env::var("ADDRESS").ok())
+            .and_then(|addr| addr.parse().ok())
+            .or_else(|| Some(([127, 0, 0, 1], 8080).into()))
+            .unwrap(),
+    };
+
+    //Debug lines
+    if let Some(addr) = matches.value_of("address") {
+        debug!("Value of address specified as a command line arg: {}", addr);
+    } else {
+        debug!("No address value has been set via command line");
+    }
+
+    if let Ok(addr) = env::var("ADDRESS") {
+        debug!("Value of address specified as an env var: {}", addr);
+    } else {
+        debug!("No address value has been set via env vars");
+    }
+
+    debug!("binding to address {}", conf.address);
 
     //Create a service
     let make_svc = make_service_fn(|_conn| async {
         Ok::<_, Infallible>(service_fn(hello_world))
     });
 
-    let server = Server::bind(&addr).serve(make_svc);
+    let server = Server::bind(&(conf.address)).serve(make_svc);
     let graceful = server.with_graceful_shutdown(shutdown_signal());
 
     info!("Starting the server");

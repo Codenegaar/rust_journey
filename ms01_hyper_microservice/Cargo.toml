@@ -8,6 +8,7 @@ edition = "2018"
 
 [dependencies]
 clap = "2.33.3"
+dotenv = "0.15.0"
 futures = "0.3.6"
 hyper = "0.13.8"
 log = "0.4.11"
