@@ -1,7 +1,12 @@
 use std::convert::Infallible;
 use std::net::SocketAddr;
-use hyper::{Body, Request, Response, Server};
+
+use hyper::{Body, Request, Response, Server,
+            Method, StatusCode
+            };
 use hyper::service::{make_service_fn, service_fn};
+
+use futures::TryStreamExt as _;
 
 #[tokio::main]
 async fn main() {
@@ -19,8 +24,44 @@ async fn main() {
     }
 }
 
-async fn hello_world(_req: Request<Body>) -> Result<Response<Body>, Infallible> {
-    Ok(
-        Response::new("Hello world".into())
-    )
+async fn hello_world(req: Request<Body>) -> Result<Response<Body>, hyper::Error> {
+    let mut response = Response::new(Body::empty());
+
+    //Define routing table
+    match (req.method(), req.uri().path()) {
+        (&Method::GET, "/") => {
+            *response.body_mut() = Body::from("Hello bastard\n");
+        },
+        (&Method::POST, "/echo") => {
+            *response.body_mut() = req.into_body();
+        },
+        (&Method::POST, "/echo/uppercase") => {
+            let mapping = req
+                .into_body()
+                .map_ok(|chunk| {
+                    chunk.iter()
+                        .map(|byte| byte.to_ascii_uppercase())
+                        .collect::<Vec<u8>>()
+                });
+            *response.body_mut() = Body::wrap_stream(mapping);
+        },
+        (&Method::POST, "/echo/reversed") => {
+            let full_body = hyper::body::to_bytes(req.into_body()).await;
+            if let Ok(full_body) = full_body {
+                let reversed = full_body.iter()
+                    .rev()
+                    .cloned()
+                    .collect::<Vec<u8>>();
+
+                *response.body_mut() = reversed.into();
+            } else {
+                *response.status_mut() = StatusCode::INTERNAL_SERVER_ERROR;
+            }
+        },
+        _ => {
+            *response.status_mut() = StatusCode::NOT_FOUND;
+        },
+    };
+
+    Ok(response)
 }
