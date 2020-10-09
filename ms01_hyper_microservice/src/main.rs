@@ -8,8 +8,13 @@ use hyper::service::{make_service_fn, service_fn};
 
 use futures::TryStreamExt as _;
 
+use log::{debug, info, trace, error};
+
 #[tokio::main]
 async fn main() {
+    //Start logging and configuration
+    pretty_env_logger::init();
+
     let addr = SocketAddr::from(([127, 0, 0, 1], 8080));
 
     //Create a service
@@ -20,12 +25,11 @@ async fn main() {
     let server = Server::bind(&addr).serve(make_svc);
     let graceful = server.with_graceful_shutdown(shutdown_signal());
 
+    info!("Starting the server");
     if let Err(e) = graceful.await {
-        eprintln!("Error registering grateful shutdown signal: {}", e);
+        // eprintln!("Error registering grateful shutdown signal: {}", e);
+        error!("Error registering graceful shutdown or server error: {}", e);
     }
-    // if let Err(e) = server.await {
-    //     eprintln!("Error starting the server: {}", e);
-    // }
 }
 
 async fn hello_world(req: Request<Body>) -> Result<Response<Body>, hyper::Error> {
