@@ -8,12 +8,40 @@ use hyper::service::{make_service_fn, service_fn};
 
 use futures::TryStreamExt as _;
 
+//Logging and conf.
 use log::{debug, info, trace, error};
+use clap::{App, crate_name, crate_authors, crate_description, crate_version, Arg};
 
 #[tokio::main]
 async fn main() {
     //Start logging and configuration
+    //Initialize logging
     pretty_env_logger::init();
+
+    //Create a command-line parser
+    let matches = App::new(crate_name!())
+        .version(crate_version!())
+        .author(crate_authors!())
+        .about(crate_description!())
+        .arg(Arg::with_name("address")
+            .short('a')
+            .long("address")
+            .value_name("ADDRESS")
+            .help("IP address to bind the server to")
+            .takes_value(true))
+        .arg(Arg::with_name("port")
+            .short("p")
+            .long("port")
+            .value_name("PORT")
+            .help("Port to listen to")
+            .takes_value(true))
+        .arg(Arg::with_name("log-level")
+            .short("l")
+            .long("log-level")
+            .value_name("LOG_LEVEL")
+            .help("Log level, trace, debug, info, warn, error")
+            .takes_value(true))
+        .get_matches();
 
     let addr = SocketAddr::from(([127, 0, 0, 1], 8080));
 
