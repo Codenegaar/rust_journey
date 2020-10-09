@@ -18,10 +18,14 @@ async fn main() {
     });
 
     let server = Server::bind(&addr).serve(make_svc);
+    let graceful = server.with_graceful_shutdown(shutdown_signal());
 
-    if let Err(e) = server.await {
-        eprintln!("Error starting the server: {}", e);
+    if let Err(e) = graceful.await {
+        eprintln!("Error registering grateful shutdown signal: {}", e);
     }
+    // if let Err(e) = server.await {
+    //     eprintln!("Error starting the server: {}", e);
+    // }
 }
 
 async fn hello_world(req: Request<Body>) -> Result<Response<Body>, hyper::Error> {
@@ -64,4 +68,10 @@ async fn hello_world(req: Request<Body>) -> Result<Response<Body>, hyper::Error>
     };
 
     Ok(response)
+}
+
+async fn shutdown_signal() {
+    tokio::signal::ctrl_c()
+        .await
+        .expect("Failed to register Ctrl + C signal handler");
 }
